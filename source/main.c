@@ -115,81 +115,21 @@ float lerp(float a, float b, float t){
 }
 
 void front_page(){
-    int portno =        80;
-    char *host =        "api.pushshift.io";
-    char *message = "GET /reddit/search/submission/?score=>10000&size=10&fields=author,url,score,title HTTP/1.1\r\nHost: api.pushshift.io\r\nUser-Agent: RedditWii/1.0\r\n\r\n";
+    int portno = 80;
+    char *host = "api.pushshift.io";
 
     struct hostent *server;
     struct sockaddr_in serv_addr;
-    int sockfd, bytes, sent, received, total;
+    int sockfd, bytes, sent, received, total, message_size;
+    char *message, response[4096];
 
-    char response[6000];
+    message_size=0;
+        message_size+=strlen("GET /reddit/search/submission/?score=>10000&size=10&fields=author,subreddit,url,score,title HTTP/1.1\r\nHost: api.pushshift.io\r\nUser-Agent: RedditWii/1.0\r\n");
+        message_size+=strlen("\r\n");
 
-    //printf("Request:\n%s\n",message);
-
-    sockfd = net_socket(AF_INET, SOCK_STREAM, 0);
-    //if (sockfd < 0) printf("ERROR opening socket");
-
-    struct timeval tv;
-    tv.tv_sec = 30;  /* 30 Secs Timeout */
-    net_setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO,(struct timeval *)&tv,sizeof(struct timeval));
-
-    server = net_gethostbyname(host);
-    //if (server == NULL) printf("ERROR, no such host");
-
-    memset(&serv_addr,0,sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(portno);
-    memcpy(&serv_addr.sin_addr.s_addr,server->h_addr,server->h_length);
-
-    if (net_connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0){}
-        //printf("ERROR connecting");
-
-    total = strlen(message);
-    sent = 0;
-    do {
-        bytes = net_write(sockfd,message+sent,total-sent);
-        //if (bytes < 0)
-            //printf("ERROR writing message to socket");
-        if (bytes == 0)
-            break;
-        sent+=bytes;
-    } while (sent < total);
-
-    memset(response,0,sizeof(response));
-    total = sizeof(response)-1;
-    received = 0;
-    do {
-        bytes = net_read(sockfd,response+received,total-received);
-        //if (bytes < 0)
-            //printf("ERROR reading response from socket");
-        if (bytes == 0)
-            break;
-        received+=bytes;
-    } while (received < total);
-
-    net_close(sockfd);
-
-    msg = malloc(sizeof(response));
-    sprintf(msg, "%s", response);
-
-    FILE * fp;
-    fp = fopen("sd://test.json","w");
-    fprintf(fp, "%s %s :NICE\n", host, message);
-    fprintf(fp, response);
-    fclose(fp);
-
-    frontpageGotten = true;
-}
-
-/*
-    int portno =        80;
-    char *host =        "api.pushshift.io";
-    char *message = "GET /reddit/search/submission/?score=%%3E10000&size=10&fields=author,subreddit,url,score,title HTTP/1.1\r\nHost: api.pushshift.io\r\nUser-Agent: RedditWii/1.0\r\n\r\n";
-
-    struct hostent *server;
-    struct sockaddr_in serv_addr;
-    int sockfd, bytes, sent, received, total;
+    message=malloc(message_size);
+        sprintf(message,"GET /reddit/search/submission/?score=>10000&size=10&fields=author,subreddit,url,score,title HTTP/1.1\r\nHost: api.pushshift.io\r\nUser-Agent: RedditWii/1.0\r\n");
+        strcat(message,"\r\n");
 
     printf("Request:\n%s\n",message);
 
@@ -237,7 +177,10 @@ void front_page(){
 
     FILE * fp;
     fp = fopen("sd://test.json","w");
-    fprintf(fp, "%s %s :NICE\n", host, message);
     fprintf(fp, response);
     fclose(fp);
-}*/
+
+    free(message);
+
+    frontpageGotten = true;
+}
