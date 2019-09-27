@@ -80,10 +80,9 @@ int main() {
             }
 
             if (endsUp >= 0xFD){
-                GRRLIB_PrintfTTF(4, 4, tex_font, "Written by u/DeltaTwoForce", 16, 0x00000000);
                 if(!getFrontpage){
-                    front_page();
                     getFrontpage = true;
+                    front_page();
                 }
             }
 
@@ -121,14 +120,14 @@ void front_page(){
     struct hostent *server;
     struct sockaddr_in serv_addr;
     int sockfd, bytes, sent, received, total, message_size;
-    char *message, response[4096];
+    char *message, response[4096*6]; //Maybe increase memory?
 
     message_size=0;
-        message_size+=strlen("GET /reddit/search/submission/?score=>10000&size=10&fields=author,subreddit,url,score,title HTTP/1.1\r\nHost: api.pushshift.io\r\nUser-Agent: RedditWii/1.0\r\n");
+        message_size+=strlen("GET /reddit/search/submission/?score=>1000&size=9 HTTP/1.1\r\nHost: api.pushshift.io\r\nUser-Agent: Wii/1.0\r\n");
         message_size+=strlen("\r\n");
 
     message=malloc(message_size);
-        sprintf(message,"GET /reddit/search/submission/?score=>10000&size=10&fields=author,subreddit,url,score,title HTTP/1.1\r\nHost: api.pushshift.io\r\nUser-Agent: RedditWii/1.0\r\n");
+        sprintf(message,"GET /reddit/search/submission/?score=>1000&size=9 HTTP/1.1\r\nHost: api.pushshift.io\r\nUser-Agent: Wii/1.0\r\n");
         strcat(message,"\r\n");
 
     printf("Request:\n%s\n",message);
@@ -175,12 +174,15 @@ void front_page(){
 
     net_close(sockfd);
 
+    free(message);
+
+    msg = malloc(sizeof(response));
+    sprintf(msg, "%s", response);
+
     FILE * fp;
     fp = fopen("sd://test.json","w");
     fprintf(fp, response);
     fclose(fp);
-
-    free(message);
 
     frontpageGotten = true;
 }
