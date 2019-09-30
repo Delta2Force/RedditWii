@@ -137,11 +137,11 @@ void front_page(){
     char *message, response[4096*2];
 
     message_size=0;
-        message_size+=strlen("GET /reddit/search/submission/?score=>1000&size=10&fields=author,subreddit,url,score,title HTTP/1.1\r\nHost: api.pushshift.io\r\n");
+        message_size+=strlen("GET /reddit/search/submission/?score=>10000&size=10&fields=author,subreddit,url,score,title&over_18=false HTTP/1.1\r\nHost: api.pushshift.io\r\n");
         message_size+=strlen("\r\n");
 
     message=malloc(message_size);
-        sprintf(message,"GET /reddit/search/submission/?score=>1000&size=10&fields=author,subreddit,url,score,title HTTP/1.1\r\nHost: api.pushshift.io\r\n");
+        sprintf(message,"GET /reddit/search/submission/?score=>10000&size=10&fields=author,subreddit,url,score,title&over_18=false HTTP/1.1\r\nHost: api.pushshift.io\r\n");
         strcat(message,"\r\n");
 
     printf("Request:\n%s\n",message);
