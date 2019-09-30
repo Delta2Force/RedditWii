@@ -123,11 +123,11 @@ void front_page(){
     char *message, response[4096*1]; //Maybe increase memory?
 
     message_size=0;
-        message_size+=strlen("GET /reddit/search/submission/?score=>1000&fields=author&size=200 HTTP/1.1\r\nHost: api.pushshift.io\r\n");
+        message_size+=strlen("GET /reddit/search/submission/?score=>1000&fields=author&size=20 HTTP/1.1\r\nHost: api.pushshift.io\r\n");
         message_size+=strlen("\r\n");
 
     message=malloc(message_size);
-        sprintf(message,"GET /reddit/search/submission/?score=>1000&fields=author&size=200 HTTP/1.1\r\nHost: api.pushshift.io\r\n");
+        sprintf(message,"GET /reddit/search/submission/?score=>1000&fields=author&size=20 HTTP/1.1\r\nHost: api.pushshift.io\r\n");
         strcat(message,"\r\n");
 
     printf("Request:\n%s\n",message);
@@ -161,36 +161,7 @@ void front_page(){
     total = sizeof(response)-1;
     received = 0;
 
-   /* char * curline = malloc(255*sizeof(char));
-
-    FILE * faf;
-    faf = fopen("sd://yes.json","w");*/
-
-    do {
-        bytes = net_read(sockfd,response+received,total-received);
-        if (bytes < 0)
-            break;
-        if (bytes == 0)
-            break;
-
-        /*fprintf(faf, "%d", bytes);
-
-        if(bytes == 0x0A){
-            if ( 16 >= strlen(curline) && (strncmp("Content-Length: ",curline,16) == 0) ) {
-                int offset = strlen("Content-Length: ");
-                int leng = atoi(curline+offset);
-                total = leng;
-            }
-
-            curline = "";
-        }else{
-            curline+=bytes;
-        }*/
-
-        received+=bytes;
-    } while (received < total);
-
-    //fclose(faf);
+    net_recv(sockfd, &response, total, 0); //I spent a week tinkering with this code only for it to be fixed by replacing it with this one line. ONE. LINE.
 
     if (received == total)
         printf("ERROR storing complete response from socket");
