@@ -5,7 +5,7 @@
 #include <wiiuse/wpad.h>
 #include <stdio.h>
 
-#include "jsmn.h"
+#include "json.h"
 #include "NotoSans_ttf.h"
 #include "gfx/logo.h"
 #include "gfx/logotext.h"
@@ -18,6 +18,14 @@
 #include <netdb.h>*/
 
 #define dolphin
+
+struct post {
+    char author[25];
+    char subreddit[25];
+    char title[300];
+    char url[300];
+    int score;
+};
 
 // This is my first C script so it probably sucks.
 // Written by u/DeltaTwoForce
@@ -34,16 +42,13 @@ void countevs(int chan, const WPADData *data) {
 
 float redditTextVis = 0;
 enum state currentState = LOADING_SCREEN;
-char* msg;
 
 unsigned int logoX = 79; unsigned int logoY = 165;
 float logoScale = 1;
 bool frontpageGotten=false; bool getFrontpage=false;
+struct post fp_data[25];
 
 int main() {
-    jsmn_parser parser;
-    jsmn_init(&parser);
-
     GRRLIB_Init();
     PAD_Init();
     WPAD_Init();
@@ -90,7 +95,12 @@ int main() {
                 currentState = FRONT_PAGE;
             }
         }else{
-            GRRLIB_PrintfTTF(4, 4, tex_font, msg, 16, 0x00000000);
+            int yy = 32;
+            for(int i = 0; i<10; i++){
+                GRRLIB_PrintfTTF(0, yy, tex_font, fp_data[i].title, 16, 0x00000000);
+                yy+=16;
+            }
+
             GRRLIB_DrawImg(logoX, logoY, redditLogo, 0, logoScale, logoScale, 0xFFFFFFFF);
             redditTextVis = lerp(redditTextVis,0,0.1);
             logoX = lerp(logoX,4,0.1);
@@ -119,15 +129,15 @@ void front_page(){
 
     struct hostent *server;
     struct sockaddr_in serv_addr;
-    int sockfd, bytes, sent, received, total, message_size;
-    char *message, response[4096*1]; //Maybe increase memory?
+    int sockfd, bytes, sent, total, message_size;
+    char *message, response[4096*2];
 
     message_size=0;
-        message_size+=strlen("GET /reddit/search/submission/?score=>1000&fields=author&size=20 HTTP/1.1\r\nHost: api.pushshift.io\r\n");
+        message_size+=strlen("GET /reddit/search/submission/?score=>1000&size=10&fields=author,subreddit,url,score,title HTTP/1.1\r\nHost: api.pushshift.io\r\n");
         message_size+=strlen("\r\n");
 
     message=malloc(message_size);
-        sprintf(message,"GET /reddit/search/submission/?score=>1000&fields=author&size=20 HTTP/1.1\r\nHost: api.pushshift.io\r\n");
+        sprintf(message,"GET /reddit/search/submission/?score=>1000&size=10&fields=author,subreddit,url,score,title HTTP/1.1\r\nHost: api.pushshift.io\r\n");
         strcat(message,"\r\n");
 
     printf("Request:\n%s\n",message);
@@ -159,24 +169,36 @@ void front_page(){
 
     memset(response,0,sizeof(response));
     total = sizeof(response)-1;
-    received = 0;
 
     net_recv(sockfd, &response, total, 0); //I spent a week tinkering with this code only for it to be fixed by replacing it with this one line. ONE. LINE.
-
-    if (received == total)
-        printf("ERROR storing complete response from socket");
-
     net_close(sockfd);
 
     free(message);
 
-    msg = malloc(sizeof(response));
-    sprintf(msg, "%s", response);
+    char* rawjson = strstr(response, "\r\n\r\n");
+    rawjson+=4;
 
-    FILE * fp;
-    fp = fopen("sd://test.json","w");
-    fprintf(fp, response);
-    fclose(fp);
+    json_value* js = json_parse(rawjson, strlen(rawjson));
+    json_value* data = js->u.object.values[0].value;
+
+    int length, x;
+    length = data->u.array.length;
+    for(x = 0; x < length; x++){
+        json_value* arrval = data->u.array.values[x];
+        json_value* author = arrval->u.object.values[0].value;
+        json_value* score = arrval->u.object.values[1].value;
+        json_value* subreddit = arrval->u.object.values[2].value;
+        json_value* title = arrval->u.object.values[3].value;
+        json_value* url = arrval->u.object.values[4].value;
+
+        struct post i;
+        strcpy(i.author, author->u.string.ptr);
+        i.score = score->u.integer;
+        strcpy(i.subreddit, subreddit->u.string.ptr);
+        strcpy(i.url, url->u.string.ptr);
+        strcpy(i.title, title->u.string.ptr);
+        fp_data[x] = i;
+    }
 
     frontpageGotten = true;
 }
