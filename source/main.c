@@ -97,10 +97,12 @@ int main() {
                 currentState = FRONT_PAGE;
             }
         }else{
-            int yy = 32;
+            int yy = 70;
             for(int i = 0; i<10; i++){
-                GRRLIB_PrintfTTF(0, yy, tex_font, fp_data[i].title, 16, 0x00000000);
-                yy+=16;
+                GRRLIB_PrintfTTF(8, yy, tex_font, fp_data[i].title, 24, 0x00000000);
+                // 111/(resolution y) to calculate the scale
+                // also somehow download png
+                yy+=150;
             }
 
             GRRLIB_DrawImg(logoX, logoY, redditLogo, 0, logoScale, logoScale, 0xFFFFFFFF);
