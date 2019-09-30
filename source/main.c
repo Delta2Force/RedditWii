@@ -1,3 +1,11 @@
+// This is my first C script so it probably sucks.
+// Over the past few weeks I have spent my time tinkering with this
+// and I would have never thought that I would have to work with
+// sockets like this. I'm even scared to do this in Java!
+// I think this is my favourite project yet :)
+//
+// Written by u/DeltaTwoForce
+
 #include <grrlib.h>
 
 #include <stdlib.h>
@@ -13,9 +21,6 @@
 
 #include <unistd.h>
 #include <network.h>
-/*#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>*/
 
 #define dolphin
 
@@ -26,9 +31,6 @@ struct post {
     char url[300];
     int score;
 };
-
-// This is my first C script so it probably sucks.
-// Written by u/DeltaTwoForce
 
 float lerp(float a, float b, float t);
 void front_page(void);
