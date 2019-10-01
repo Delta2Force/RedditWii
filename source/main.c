@@ -34,6 +34,7 @@ struct post {
 
 float lerp(float a, float b, float t);
 void front_page(void);
+void downloadImage(int index);
 enum state {LOADING_SCREEN, FRONT_PAGE};
 
 unsigned int evctr = 0;
@@ -49,6 +50,7 @@ unsigned int logoX = 79; unsigned int logoY = 165;
 float logoScale = 1;
 bool frontpageGotten=false; bool getFrontpage=false;
 struct post fp_data[25];
+GRRLIB_texImg* textures[10];
 
 int main() {
     GRRLIB_Init();
@@ -90,6 +92,10 @@ int main() {
                 if(!getFrontpage){
                     getFrontpage = true;
                     front_page();
+
+                    for(int i = 0;i<10;i++){
+                        downloadImage(i);
+                    }
                 }
             }
 
@@ -100,6 +106,7 @@ int main() {
             int yy = 70;
             for(int i = 0; i<10; i++){
                 GRRLIB_PrintfTTF(8, yy, tex_font, fp_data[i].title, 24, 0x00000000);
+                //  GRRLIB_DrawImg(8, yy+24, textures[i],0, 111/textures[i]->h, 111/textures[i]->h, 0xFFFFFFFF);
                 // 111/(resolution y) to calculate the scale
                 // also somehow download png
                 yy+=150;
@@ -205,4 +212,108 @@ void front_page(){
     }
 
     frontpageGotten = true;
+}
+
+void downloadImage(int index){
+    struct post i = fp_data[index];
+
+    char* url = malloc(300*sizeof(char));
+    strcpy(url, i.url);
+    url+=8;
+    char* tempurl = malloc(300*sizeof(char));
+    strcpy(tempurl, url);
+
+    int portno = 80;
+    char delimiter[] = "/";
+    char *host = strtok(tempurl, delimiter);
+    char *requestend = url;
+    //memcpy(requestend, url, strlen(url));
+    requestend+=strlen(host);
+
+    if(strcmp(host,"i.redd.it")){
+        return;
+    }
+
+    struct hostent *server;
+    struct sockaddr_in serv_addr;
+    int sockfd, bytes, sent, total, message_size;
+    char *message, response[24000];
+
+    message_size=0;
+        message_size+=strlen("GET  HTTP/1.1\r\nHost: \r\n")+strlen(requestend)+strlen(host);
+        message_size+=strlen("\r\n Connection: keep-alive\r\n\r\n Keep-Alive: 300 \r\n");
+
+    message=malloc(message_size);
+        sprintf(message,"GET %s HTTP/1.1\r\nHost: %s\r\n",requestend, host);
+        strcat(message,"\r\n Connection: keep-alive\r\n\r\n Keep-Alive: 300 \r\n");
+
+    printf("Request:\n%s\n",message);
+
+    sockfd = net_socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) printf("ERROR opening socket");
+
+    server = net_gethostbyname(host);
+    if (server == NULL) printf("ERROR, no such host");
+
+    memset(&serv_addr,0,sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(portno);
+    memcpy(&serv_addr.sin_addr.s_addr,server->h_addr,server->h_length);
+
+    if (net_connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0)
+        printf("ERROR connecting");
+
+    total = strlen(message);
+    sent = 0;
+    do {
+        bytes = net_write(sockfd,message+sent,total-sent);
+        if (bytes < 0)
+            printf("ERROR writing message to socket");
+        if (bytes == 0)
+            break;
+        sent+=bytes;
+    } while (sent < total);
+
+    memset(response,0,sizeof(response));
+    total = sizeof(response)-1;
+
+    FILE * fp;
+    char path[50];
+    sprintf(path, "sd://img_%d.png", index);
+    fp = fopen (path,"w");
+
+    net_recv(sockfd, &response, total, 0);
+    int contentLength;
+    int received = strlen(response);
+
+    //Get Content-Length and write resulting image to file
+    //File-writing help: https://stackoverflow.com/questions/24321295/how-can-i-download-a-file-using-c-socket-programming
+
+    net_close(sockfd);
+    fclose(fp);
+
+    char pathd[50];
+    sprintf(pathd, "sd://info_%d.txt", index);
+    fp = fopen (pathd,"w");
+    fprintf(fp, response);
+    fprintf(fp, "\n\n\n\n");
+    fprintf(fp, message);
+    fprintf(fp, "\n\n\n\n");
+    fprintf(fp, requestend);
+    fprintf(fp, "\n\n\n\n");
+    fprintf(fp, url);
+    fprintf(fp, "\n\n\n\n");
+    fprintf(fp, host);
+    fclose(fp);
+
+    free(message);
+
+    char* rawimg = strstr(response, "\r\n\r\n");
+    rawimg+=4;
+
+    //textures[index] = GRRLIB_LoadTexture(rawimg);
+    free(fp);
+    free(host);
+    free(requestend);
+    free(url);
 }
