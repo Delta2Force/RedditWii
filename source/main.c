@@ -35,6 +35,7 @@ struct post {
 float lerp(float a, float b, float t);
 void front_page(void);
 void downloadImage(int index);
+int EndsWith(const char *str, const char *suffix);
 enum state {LOADING_SCREEN, FRONT_PAGE};
 
 unsigned int evctr = 0;
@@ -144,11 +145,11 @@ void front_page(){
     char *message, response[4096*2];
 
     message_size=0;
-        message_size+=strlen("GET /reddit/search/submission/?score=>10000&size=10&fields=author,subreddit,url,score,title&over_18=false HTTP/1.1\r\nHost: api.pushshift.io\r\n");
+        message_size+=strlen("GET /reddit/search/submission/?score=>10000&size=10&fields=author,subreddit,url,score,title&over_18=false&subreddit=gaming,funny,memes,dankmemes&is_video=false HTTP/1.1\r\nHost: api.pushshift.io\r\n");
         message_size+=strlen("\r\n");
 
     message=malloc(message_size);
-        sprintf(message,"GET /reddit/search/submission/?score=>10000&size=10&fields=author,subreddit,url,score,title&over_18=false HTTP/1.1\r\nHost: api.pushshift.io\r\n");
+        sprintf(message,"GET /reddit/search/submission/?score=>10000&size=10&fields=author,subreddit,url,score,title&over_18=false&subreddit=gaming,funny,memes,dankmemes&is_video=false HTTP/1.1\r\nHost: api.pushshift.io\r\n");
         strcat(message,"\r\n");
 
     printf("Request:\n%s\n",message);
@@ -211,6 +212,7 @@ void front_page(){
         fp_data[x] = i;
     }
 
+ 
     frontpageGotten = true;
 }
 
@@ -230,90 +232,121 @@ void downloadImage(int index){
     //memcpy(requestend, url, strlen(url));
     requestend+=strlen(host);
 
-    if(strcmp(host,"i.redd.it")){
-        return;
+    if(strstr(url,".jpg") != NULL){
+        struct hostent *server;
+        struct sockaddr_in serv_addr;
+        int sockfd, bytes, sent, total, message_size;
+        char *message, response[2000];
+
+        message_size=0;
+            message_size+=strlen("GET  HTTP/1.1\r\nHost: \r\n")+strlen(requestend)+strlen(host);
+            message_size+=strlen("Connection: Keep-Alive\r\n\r\n");
+
+        message=malloc(message_size);
+            sprintf(message,"GET %s HTTP/1.1\r\nHost: %s\r\n",requestend, host);
+            strcat(message,"Connection: Keep-Alive\r\n\r\n");
+
+        printf("Request:\n%s\n",message);
+
+        sockfd = net_socket(AF_INET, SOCK_STREAM, 0);
+        if (sockfd < 0) printf("ERROR opening socket");
+
+        server = net_gethostbyname(host);
+        if (server == NULL) printf("ERROR, no such host");
+
+        memset(&serv_addr,0,sizeof(serv_addr));
+        serv_addr.sin_family = AF_INET;
+        serv_addr.sin_port = htons(portno);
+        memcpy(&serv_addr.sin_addr.s_addr,server->h_addr,server->h_length);
+
+        if (net_connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0)
+            printf("ERROR connecting");
+
+        total = strlen(message);
+        sent = 0;
+        do {
+            bytes = net_write(sockfd,message+sent,total-sent);
+            if (bytes < 0)
+                printf("ERROR writing message to socket");
+            if (bytes == 0)
+                break;
+            sent+=bytes;
+        } while (sent < total);
+
+        memset(response,0,sizeof(response));
+        total = sizeof(response)-1;
+
+        FILE * fp;
+        char path[50];
+        sprintf(path, "sd://feef_%d.png", index);
+        fp = fopen (path,"w");
+
+        net_recv(sockfd, &response, total, 0);
+
+        char* rawimg = strstr(response, "\r\n\r\n");
+        rawimg+=4;
+        fwrite(rawimg, sizeof(rawimg), 1, fp);
+
+        int contentLength;
+        int received = sizeof(rawimg);
+
+        char resp[2000];
+        strcpy(resp, response);
+
+        char *contentlen;
+        contentlen = strtok(resp, "\r\n");
+        contentlen = strtok(NULL, "\r\n");
+        contentlen = strtok(NULL, "\r\n");
+        contentlen = strtok(NULL, "\r\n");
+        contentlen = strtok(NULL, "\r\n");
+        contentlen = strtok(NULL, "\r\n");
+        contentlen = strtok(NULL, "\r\n");
+        contentlen+=16;
+
+        sscanf(contentlen, "%d", &contentLength);
+
+        char pth[50];
+        sprintf(pth, "sd://feef_%d.txt", index);
+        FILE* fpp;
+        fpp = fopen(pth, "w");
+        fprintf(fpp, url);
+        fprintf(fpp, "\n\n");
+        fprintf(fpp, contentlen);
+        fprintf(fpp, "\n\n");
+        fprintf(fpp, "%d", contentLength);
+        fprintf(fpp, "\n\n");
+        fprintf(fpp, response);
+        fclose(fpp);
+
+        while(1){
+            int received_len = net_recv(sockfd, &response, total, 0);
+
+            if( received_len < 0 ){
+                break;
+            }
+
+            received+=sizeof(response);
+            fwrite(response, sizeof(response), 1, fp);
+
+            if(received >= contentLength){
+                break;
+            }
+        }
+
+        //Get Content-Length and write resulting image to file
+        //File-writing help: https://stackoverflow.com/questions/24321295/how-can-i-download-a-file-using-c-socket-programming
+
+        net_close(sockfd);
+        fclose(fp);
+
+        free(message);
+
+        free(fp);
+        free(fpp);
+        free(host);
+        free(requestend);
+        free(url);
+        free(tempurl);
+        free(contentlen);   
     }
-
-    struct hostent *server;
-    struct sockaddr_in serv_addr;
-    int sockfd, bytes, sent, total, message_size;
-    char *message, response[24000];
-
-    message_size=0;
-        message_size+=strlen("GET  HTTP/1.1\r\nHost: \r\n")+strlen(requestend)+strlen(host);
-        message_size+=strlen("\r\n Connection: keep-alive\r\n\r\n Keep-Alive: 300 \r\n");
-
-    message=malloc(message_size);
-        sprintf(message,"GET %s HTTP/1.1\r\nHost: %s\r\n",requestend, host);
-        strcat(message,"\r\n Connection: keep-alive\r\n\r\n Keep-Alive: 300 \r\n");
-
-    printf("Request:\n%s\n",message);
-
-    sockfd = net_socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) printf("ERROR opening socket");
-
-    server = net_gethostbyname(host);
-    if (server == NULL) printf("ERROR, no such host");
-
-    memset(&serv_addr,0,sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(portno);
-    memcpy(&serv_addr.sin_addr.s_addr,server->h_addr,server->h_length);
-
-    if (net_connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0)
-        printf("ERROR connecting");
-
-    total = strlen(message);
-    sent = 0;
-    do {
-        bytes = net_write(sockfd,message+sent,total-sent);
-        if (bytes < 0)
-            printf("ERROR writing message to socket");
-        if (bytes == 0)
-            break;
-        sent+=bytes;
-    } while (sent < total);
-
-    memset(response,0,sizeof(response));
-    total = sizeof(response)-1;
-
-    FILE * fp;
-    char path[50];
-    sprintf(path, "sd://img_%d.png", index);
-    fp = fopen (path,"w");
-
-    net_recv(sockfd, &response, total, 0);
-    int contentLength;
-    int received = strlen(response);
-
-    //Get Content-Length and write resulting image to file
-    //File-writing help: https://stackoverflow.com/questions/24321295/how-can-i-download-a-file-using-c-socket-programming
-
-    net_close(sockfd);
-    fclose(fp);
-
-    char pathd[50];
-    sprintf(pathd, "sd://info_%d.txt", index);
-    fp = fopen (pathd,"w");
-    fprintf(fp, response);
-    fprintf(fp, "\n\n\n\n");
-    fprintf(fp, message);
-    fprintf(fp, "\n\n\n\n");
-    fprintf(fp, requestend);
-    fprintf(fp, "\n\n\n\n");
-    fprintf(fp, url);
-    fprintf(fp, "\n\n\n\n");
-    fprintf(fp, host);
-    fclose(fp);
-
-    free(message);
-
-    char* rawimg = strstr(response, "\r\n\r\n");
-    rawimg+=4;
-
-    //textures[index] = GRRLIB_LoadTexture(rawimg);
-    free(fp);
-    free(host);
-    free(requestend);
-    free(url);
 }
