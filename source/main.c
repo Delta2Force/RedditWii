@@ -319,7 +319,7 @@ void downloadImage(int index){
         fclose(fpp);
 
         while(1){
-            int received_len = net_recv(sockfd, &response, total, 0);
+            int received_len = net_recv(sockfd, &response, 1, 0);
 
             if( received_len < 0 ){
                 break;
