@@ -308,9 +308,9 @@ void downloadImage(int index){
 
         while((n = net_read(sockfd, response, 1024)) >= 1){
             strcat(THEIMG, response);
-            /*if(n < 1022){
+            if(n < 1022){
                 break;
-            }*/
+            }
             //fwrite(response, n, 1, fp);
         }
 
@@ -320,12 +320,14 @@ void downloadImage(int index){
 
         net_close(sockfd);
 
+        /*
         free(message);
         free(host);
         free(requestend);
         free(url);
         free(tempurl);
-        //free(THEIMG);
+        free(THEIMG);
+        */
     }
 
     if(strstr(url,".png") != NULL){
@@ -396,11 +398,13 @@ void downloadImage(int index){
 
         net_close(sockfd);
 
+        /*
         free(message);
         free(host);
         free(requestend);
         free(url);
         free(tempurl);
-        //free(THEIMG);
+        free(THEIMG);
+        */
     }
 }
