@@ -26,7 +26,7 @@ INCLUDES	:=
 #---------------------------------------------------------------------------------
 
 CFLAGS	= -g -O2 -Wall $(MACHDEP) $(INCLUDE) -Wl,--stack,4000000
-CXXFLAGS	=	$(CFLAGS)
+CXXFLAGS= $(CFLAGS)
 
 LDFLAGS	=	-g $(MACHDEP) -Wl,-Map,$(notdir $@).map
 
