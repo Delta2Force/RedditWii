@@ -255,7 +255,7 @@ void downloadImage(int index){
     //memcpy(requestend, url, strlen(url));
     requestend+=strlen(host);
 
-    if(strstr(url,".jpg") != NULL){
+    if(strstr(url,".png") != NULL){
         struct hostent *server;
         struct sockaddr_in serv_addr;
         int sockfd, bytes, sent, total, message_size;
@@ -300,7 +300,13 @@ void downloadImage(int index){
             sent+=bytes;
         } while (sent < total);
 
-        char* THEIMG = malloc(300000*sizeof(char));
+        //textures[index] = GRRLIB_LoadTexture((const u8*)THEIMG);
+        //downloadedTextures[index] = true;
+
+        FILE* fp;
+        char pth[20];
+        sprintf(pth, "sd://tex%d.png", index);
+        fp = fopen(pth, "wb");
         int n = 0;
 
         n = net_read(sockfd, response, 1024);
@@ -309,22 +315,31 @@ void downloadImage(int index){
             printf("read() failed");
             return;
         }
-        strcat(THEIMG, response);
+        char* ss = strstr(response, "\r\n\r\n")+4;
+        fwrite(ss, sizeof(char), strlen(ss), fp);
 
-        while((n = net_read(sockfd, response, 1024)) >= 1){
-            strcat(THEIMG, response);
-            if(n < 1022){
+        while((n = net_recv(sockfd, response, 1024, 0)) >= 1){
+            fwrite(response,sizeof(response),1,fp);
+            memset(response, 0, sizeof(response));
+            if(n < 1020){
                 break;
             }
             //fwrite(response, n, 1, fp);
         }
 
-        printf("Here we are!");
+        fclose(fp);
 
-        textures[index] = GRRLIB_LoadTexture((const u8*)THEIMG);
-        downloadedTextures[index] = true;
+        //textures[index] = GRRLIB_LoadTexture((const u8*)THEIMG);
+        //downloadedTextures[index] = true;
 
         net_close(sockfd);
+
+        memset(pth, 0, sizeof(pth));
+
+        sprintf(pth, "sd://tex%d.txt", index);
+        fp = fopen(pth, "w");
+        fprintf(fp, message);
+        fclose(fp);
 
         /*
         free(message);
@@ -333,16 +348,14 @@ void downloadImage(int index){
         free(url);
         free(tempurl);
         */
-        free(THEIMG);
-        free(server);
-        free(message);
     }
 
-    if(strstr(url,".png") != NULL){
+    if(strstr(url,".jpg") != NULL){
         struct hostent *server;
         struct sockaddr_in serv_addr;
         int sockfd, bytes, sent, total, message_size;
-        char *message, response[1024];
+        char *message;
+        char response[1024];
 
         message_size=0;
             message_size+=strlen("GET  HTTP/1.1\r\nHost: \r\n")+strlen(requestend)+strlen(host);
@@ -382,7 +395,10 @@ void downloadImage(int index){
             sent+=bytes;
         } while (sent < total);
 
-        char* THEIMG = malloc(300000*sizeof(char));
+        FILE* fp;
+        char pth[20];
+        sprintf(pth, "sd://tex%d.jpg", index);
+        fp = fopen(pth, "wb");
         int n = 0;
 
         n = net_read(sockfd, response, 1024);
@@ -391,21 +407,31 @@ void downloadImage(int index){
             printf("read() failed");
             return;
         }
-        strcat(THEIMG, response);
+        char* ss = strstr(response, "\r\n\r\n")+4;
+        fwrite(ss, sizeof(ss), 1, fp);
 
         while((n = net_read(sockfd, response, 1024)) >= 1){
-            strcat(THEIMG, response);
-            printf("WHAT THE PNG");
-            /*if(n < 1022){
+            fwrite(response,sizeof(response),1,fp);
+            memset(response, 0, sizeof(response));
+            if(n < 1020){
                 break;
-            }*/
+            }
             //fwrite(response, n, 1, fp);
         }
 
-        textures[index] = GRRLIB_LoadTexture((const u8*)THEIMG);
-        downloadedTextures[index] = true;
+        fclose(fp);
+
+        //textures[index] = GRRLIB_LoadTexture((const u8*)THEIMG);
+        //downloadedTextures[index] = true;
 
         net_close(sockfd);
+
+        memset(pth, 0, sizeof(pth));
+
+        sprintf(pth, "sd://tex%d.txt", index);
+        fp = fopen(pth, "w");
+        fprintf(fp, message);
+        fclose(fp);
 
         /*
         free(message);
@@ -414,13 +440,10 @@ void downloadImage(int index){
         free(url);
         free(tempurl);
         */
-        free(THEIMG);
-        free(server);
-        free(message);
     }
 
-    free(url);
+    /*free(url);
     free(tempurl);
     free(host);
-    free(requestend);
+    free(requestend);*/
 }
