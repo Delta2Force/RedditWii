@@ -275,8 +275,8 @@ void downloadImage(int index){
         sockfd = net_socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd < 0) printf("ERROR opening socket");
 
-        //int yes = 1;
-        //net_setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, &yes, sizeof(int));
+        int yes = 1;
+        net_setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, &yes, sizeof(int));
 
         server = net_gethostbyname(host);
         if (server == NULL) printf("ERROR, no such host");
@@ -300,9 +300,6 @@ void downloadImage(int index){
             sent+=bytes;
         } while (sent < total);
 
-        //textures[index] = GRRLIB_LoadTexture((const u8*)THEIMG);
-        //downloadedTextures[index] = true;
-
         FILE* fp;
         char pth[20];
         sprintf(pth, "sd://tex%d.png", index);
@@ -321,36 +318,14 @@ void downloadImage(int index){
         while((n = net_recv(sockfd, response, 1024, 0)) >= 1){
             fwrite(response,sizeof(response),1,fp);
             memset(response, 0, sizeof(response));
-            if(n < 1020){
+            if(n < 1024){
                 break;
             }
-            //fwrite(response, n, 1, fp);
         }
 
         fclose(fp);
-
-        //textures[index] = GRRLIB_LoadTexture((const u8*)THEIMG);
-        //downloadedTextures[index] = true;
-
         net_close(sockfd);
-
-        memset(pth, 0, sizeof(pth));
-
-        sprintf(pth, "sd://tex%d.txt", index);
-        fp = fopen(pth, "w");
-        fprintf(fp, message);
-        fclose(fp);
-
-        /*
-        free(message);
-        free(host);
-        free(requestend);
-        free(url);
-        free(tempurl);
-        */
-    }
-
-    if(strstr(url,".jpg") != NULL){
+    }else if(strstr(url,".jpg") != NULL){
         struct hostent *server;
         struct sockaddr_in serv_addr;
         int sockfd, bytes, sent, total, message_size;
@@ -370,8 +345,8 @@ void downloadImage(int index){
         sockfd = net_socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd < 0) printf("ERROR opening socket");
 
-        //int yes = 1;
-        //net_setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, &yes, sizeof(int));
+        int yes = 1;
+        net_setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, &yes, sizeof(int));
 
         server = net_gethostbyname(host);
         if (server == NULL) printf("ERROR, no such host");
@@ -401,7 +376,7 @@ void downloadImage(int index){
         fp = fopen(pth, "wb");
         int n = 0;
 
-        n = net_read(sockfd, response, 1024);
+        n = net_recv(sockfd, response, 1024, MSG_WAITALL);
 
         if(n < 1){
             printf("read() failed");
@@ -410,10 +385,9 @@ void downloadImage(int index){
         char* ss = strstr(response, "\r\n\r\n")+4;
         fwrite(ss, sizeof(ss), 1, fp);
 
-        while((n = net_read(sockfd, response, 1024)) >= 1){
-            fwrite(response,sizeof(response),1,fp);
-            memset(response, 0, sizeof(response));
-            if(n < 1020){
+        while((n = net_recv(sockfd, response, 1024, MSG_WAITALL)) >= 1){
+            fwrite(response,n,1,fp);
+            if(n < 1024){
                 break;
             }
             //fwrite(response, n, 1, fp);
