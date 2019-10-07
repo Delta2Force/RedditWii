@@ -12,6 +12,7 @@
 #include <math.h>
 #include <wiiuse/wpad.h>
 #include <stdio.h>
+#include <curl/curl.h>
 
 #include "json.h"
 #include "NotoSans_ttf.h"

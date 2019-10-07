@@ -19,7 +19,7 @@ TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
 SOURCES		:=	source source/gfx
 DATA		:=	data
-INCLUDES	:=  
+INCLUDES	:=  libs/include
 
 #---------------------------------------------------------------------------------
 # options for code generation
