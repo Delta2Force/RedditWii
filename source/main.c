@@ -12,7 +12,6 @@
 #include <math.h>
 #include <wiiuse/wpad.h>
 #include <stdio.h>
-#include <curl/curl.h>
 
 #include "json.h"
 #include "NotoSans_ttf.h"
@@ -22,6 +21,7 @@
 
 #include <unistd.h>
 #include <network.h>
+#include <curl/curl.h>
 
 #define dolphin
 
@@ -377,7 +377,7 @@ void downloadImage(int index){
         fp = fopen(pth, "wb");
         int n = 0;
 
-        n = net_recv(sockfd, response, 1024, MSG_WAITALL);
+        n = net_recv(sockfd, response, 1024, 0);
 
         if(n < 1){
             printf("read() failed");
@@ -386,7 +386,7 @@ void downloadImage(int index){
         char* ss = strstr(response, "\r\n\r\n")+4;
         fwrite(ss, sizeof(ss), 1, fp);
 
-        while((n = net_recv(sockfd, response, 1024, MSG_WAITALL)) >= 1){
+        while((n = net_recv(sockfd, response, 1024, 0)) >= 1){
             fwrite(response,n,1,fp);
             if(n < 1024){
                 break;
