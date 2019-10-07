@@ -21,7 +21,6 @@
 
 #include <unistd.h>
 #include <network.h>
-#include <curl/curl.h>
 
 #define dolphin
 
@@ -256,77 +255,7 @@ void downloadImage(int index){
     //memcpy(requestend, url, strlen(url));
     requestend+=strlen(host);
 
-    if(strstr(url,".png") != NULL){
-        struct hostent *server;
-        struct sockaddr_in serv_addr;
-        int sockfd, bytes, sent, total, message_size;
-        char *message;
-        char response[1024] = {0};
-
-        message_size=0;
-            message_size+=strlen("GET  HTTP/1.1\r\nHost: \r\n")+strlen(requestend)+strlen(host);
-            message_size+=strlen("Connection: Keep-Alive\r\n\r\n");
-
-        message=malloc(message_size);
-            sprintf(message,"GET %s HTTP/1.1\r\nHost: %s\r\n",requestend, host);
-            strcat(message,"Connection: Keep-Alive\r\n\r\n");
-
-        printf("Request:\n%s\n",message);
-
-        sockfd = net_socket(AF_INET, SOCK_STREAM, 0);
-        if (sockfd < 0) printf("ERROR opening socket");
-
-        int yes = 1;
-        net_setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, &yes, sizeof(int));
-
-        server = net_gethostbyname(host);
-        if (server == NULL) printf("ERROR, no such host");
-
-        memset(&serv_addr,0,sizeof(serv_addr));
-        serv_addr.sin_family = AF_INET;
-        serv_addr.sin_port = htons(portno);
-        memcpy(&serv_addr.sin_addr.s_addr,server->h_addr,server->h_length);
-
-        if (net_connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0)
-            printf("ERROR connecting");
-
-        total = strlen(message);
-        sent = 0;
-        do {
-            bytes = net_write(sockfd,message+sent,total-sent);
-            if (bytes < 0)
-                printf("ERROR writing message to socket");
-            if (bytes == 0)
-                break;
-            sent+=bytes;
-        } while (sent < total);
-
-        FILE* fp;
-        char pth[20];
-        sprintf(pth, "sd://tex%d.png", index);
-        fp = fopen(pth, "wb");
-        int n = 0;
-
-        n = net_read(sockfd, response, 1024);
-
-        if(n < 1){
-            printf("read() failed");
-            return;
-        }
-        char* ss = strstr(response, "\r\n\r\n")+4;
-        fwrite(ss, sizeof(char), strlen(ss), fp);
-
-        while((n = net_recv(sockfd, response, 1024, 0)) >= 1){
-            fwrite(response,sizeof(response),1,fp);
-            memset(response, 0, sizeof(response));
-            if(n < 1024){
-                break;
-            }
-        }
-
-        fclose(fp);
-        net_close(sockfd);
-    }else if(strstr(url,".jpg") != NULL){
+    if(strstr(url,".jpg") != NULL){
         struct hostent *server;
         struct sockaddr_in serv_addr;
         int sockfd, bytes, sent, total, message_size;
@@ -346,8 +275,8 @@ void downloadImage(int index){
         sockfd = net_socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd < 0) printf("ERROR opening socket");
 
-        int yes = 1;
-        net_setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, &yes, sizeof(int));
+        //int yes = 1;
+        //net_setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, &yes, sizeof(int));
 
         server = net_gethostbyname(host);
         if (server == NULL) printf("ERROR, no such host");
@@ -377,7 +306,24 @@ void downloadImage(int index){
         fp = fopen(pth, "wb");
         int n = 0;
 
-        n = net_recv(sockfd, response, 1024, 0);
+        n = net_read(sockfd, response, 1024);
+
+        char tmpresp[1024];
+        strcpy(tmpresp, response);
+
+        char *contentlen;
+        contentlen = strtok(tmpresp, "\r\n");
+        contentlen = strtok(NULL, "\r\n");
+        contentlen = strtok(NULL, "\r\n");
+        contentlen = strtok(NULL, "\r\n");
+        contentlen = strtok(NULL, "\r\n");
+        contentlen = strtok(NULL, "\r\n");
+        contentlen = strtok(NULL, "\r\n");
+        contentlen+=16;
+
+        int remain_data = 0;
+
+        sscanf(contentlen, "%d", &remain_data);
 
         if(n < 1){
             printf("read() failed");
@@ -385,9 +331,11 @@ void downloadImage(int index){
         }
         char* ss = strstr(response, "\r\n\r\n")+4;
         fwrite(ss, sizeof(ss), 1, fp);
+        remain_data-=sizeof(ss);
 
-        while((n = net_recv(sockfd, response, 1024, 0)) >= 1){
-            fwrite(response,n,1,fp);
+        while((remain_data > 0) && (n = net_read(sockfd, response, 1024)) >= 1){
+            fwrite(response,sizeof(char),n,fp);
+            remain_data -= n;
             if(n < 1024){
                 break;
             }
