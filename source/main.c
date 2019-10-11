@@ -6,7 +6,7 @@
 //
 // Written by u/DeltaTwoForce
 
-//#include <grrlib.h>
+#include <grrlib.h>
 
 #include <stdlib.h>
 #include <math.h>
@@ -52,37 +52,20 @@ unsigned int logoX = 79; unsigned int logoY = 165;
 float logoScale = 1;
 bool frontpageGotten=false; bool getFrontpage=false;
 struct post fp_data[25];
-//GRRLIB_texImg* textures[10];
+GRRLIB_texImg* textures[10];
 bool downloadedTextures[10] = {0};
 
 int main() {
-    //GRRLIB_Init();
+    GRRLIB_Init();
     PAD_Init();
     WPAD_Init();
     net_init();
 
-    //GRRLIB_ttfFont *tex_font = //GRRLIB_LoadTTF(NotoSans_ttf, NotoSans_ttf_size);
-    //GRRLIB_texImg *redditLogoText = //GRRLIB_LoadTexture(logotext);
-    //GRRLIB_texImg *redditLogo = //GRRLIB_LoadTexture(logo);
+    GRRLIB_ttfFont *tex_font = GRRLIB_LoadTTF(NotoSans_ttf, NotoSans_ttf_size);
+    GRRLIB_texImg *redditLogoText = GRRLIB_LoadTexture(logotext);
+    GRRLIB_texImg *redditLogo = GRRLIB_LoadTexture(logo);
 
-    //GRRLIB_SetBackgroundColour(0xFF, 0xFF, 0xFF, 0xFF);
-
-    
-    VIDEO_Init();
-    GXRModeObj *rmode = VIDEO_GetPreferredMode(NULL);
-    VIDEO_Configure(rmode);
-    void *xfb = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode));
-    VIDEO_SetNextFramebuffer(xfb);
-    VIDEO_ClearFrameBuffer(rmode, xfb, COLOR_BLACK);
-    VIDEO_Flush();
-    VIDEO_WaitVSync();
-    if (rmode->viTVMode & VI_NON_INTERLACE) VIDEO_WaitVSync();
-    CON_InitEx(rmode, 20, 30, rmode->fbWidth - 40, rmode->xfbHeight - 60);
-    CON_EnableGecko(1, 0);
-    VIDEO_SetBlack(FALSE);
-    VIDEO_Flush();
-    VIDEO_WaitVSync();
-    if (rmode->viTVMode & VI_NON_INTERLACE) VIDEO_WaitVSync();
+    GRRLIB_SetBackgroundColour(0xFF, 0xFF, 0xFF, 0xFF);
 
     WPAD_SetDataFormat(WPAD_CHAN_ALL, WPAD_FMT_BTNS_ACC_IR);
     WPAD_SetVRes(WPAD_CHAN_ALL, 640, 480);
@@ -90,22 +73,22 @@ int main() {
     // 79, 165
 
     while(1) {
-        //GRRLIB_2dMode();
+        GRRLIB_2dMode();
         WPAD_ReadPending(WPAD_CHAN_ALL, countevs);
         u32 down = WPAD_ButtonsDown(WPAD_CHAN_0);
         if(down & WPAD_BUTTON_HOME) break;
 
         unsigned int endsUp = redditTextVis*0xFF;
-        //GRRLIB_DrawImg(0, 0, redditLogoText, 0, 1, 1, 0xFFFFFF00|endsUp);
+        GRRLIB_DrawImg(0, 0, redditLogoText, 0, 1, 1, 0xFFFFFF00|endsUp);
 
         if(currentState == LOADING_SCREEN){
-            //GRRLIB_DrawImg(logoX, logoY, redditLogo, 0, logoScale, logoScale, 0xFFFFFF00|endsUp);
+            GRRLIB_DrawImg(logoX, logoY, redditLogo, 0, logoScale, logoScale, 0xFFFFFF00|endsUp);
             redditTextVis = lerp(redditTextVis,1,0.1);
 
             //When Reddit logo is fully faded in
             if (endsUp >= 0xF0){
-                //GRRLIB_PrintfTTF(4, 4, tex_font, "Written by u/DeltaTwoForce", 16, 0x00000000);
-                //GRRLIB_PrintfTTF((640/2) - sizeof("Getting front page...")*7, (480/3)*2, tex_font, "Getting front page...", 32, 0x00000000);
+                GRRLIB_PrintfTTF(4, 4, tex_font, "Written by u/DeltaTwoForce", 16, 0x00000000);
+                GRRLIB_PrintfTTF((640/2) - sizeof("Getting front page...")*7, (480/3)*2, tex_font, "Getting front page...", 32, 0x00000000);
             }
 
             if (endsUp >= 0xFD){
@@ -121,31 +104,31 @@ int main() {
             if(frontpageGotten && getFrontpage){
                 currentState = FRONT_PAGE;
             }
-        }/*else{
+        }else{
             int yy = 70;
             for(int i = 0; i<10; i++){
-                //GRRLIB_PrintfTTF(8, yy, tex_font, fp_data[i].title, 24, 0x00000000);
-                if(downloadedTextures[i]){
-                    //GRRLIB_DrawImg(8, yy+24, textures[i],0, 111/textures[i]->h, 111/textures[i]->h, 0xFFFFFFFF);
+                GRRLIB_PrintfTTF(8, yy, tex_font, fp_data[i].title, 24, 0x00000000);
+                if(downloadedTextures[i] == true)){
+                    GRRLIB_DrawImg(8, yy+24, textures[i],0, 111/textures[i]->h, 111/textures[i]->h, 0xFFFFFFFF);
                 }
                 // 111/(resolution y) to calculate the scale
                 // also somehow download png
                 yy+=150;
             }
 
-            //GRRLIB_DrawImg(logoX, logoY, redditLogo, 0, logoScale, logoScale, 0xFFFFFFFF);
+            GRRLIB_DrawImg(logoX, logoY, redditLogo, 0, logoScale, logoScale, 0xFFFFFFFF);
             redditTextVis = lerp(redditTextVis,0,0.1);
             logoX = lerp(logoX,4,0.1);
             logoY = lerp(logoY,4,0.1);
             logoScale = lerp(logoScale,0.4,0.1);
-        }*/
+        }
 
-        //GRRLIB_Render();
+        GRRLIB_Render();
     }
-    //GRRLIB_FreeTTF(tex_font);
-    //GRRLIB_FreeTexture(redditLogoText);
-    //GRRLIB_FreeTexture(redditLogo);
-    //GRRLIB_Exit(); // Be a good boy, clear the memory allocated by //GRRLIB
+    GRRLIB_FreeTTF(tex_font);
+    GRRLIB_FreeTexture(redditLogoText);
+    GRRLIB_FreeTexture(redditLogo);
+    GRRLIB_Exit(); // Be a good boy, clear the memory allocated by //GRRLIB
     WPAD_Shutdown();
 
     exit(0);
@@ -300,9 +283,6 @@ void downloadImage(int index){
             sent+=bytes;
         } while (sent < total);
 
-        FILE* fp;
-        char pth[20];
-
         /*sprintf(pth, "sd://tex%d.txt", index);
         fp = fopen(pth, "w");
         fprintf(fp, message);
@@ -311,50 +291,66 @@ void downloadImage(int index){
         fclose(fp);
 
         memset(pth, 0, sizeof(pth));*/
-        sprintf(pth, "sd://tex%d.jpg", index);
-        fp = fopen(pth, "wb");
 
-        s32 n = 0;
-        s32 received = 0;
-        s32 contentLength = (s32) ParseHeader(sockfd);
-
-        printf("%d, %d", contentLength, received);
-
-        while(1){
-            n = net_recv(sockfd, response, 1024,0);
-            if(n==-1){
-                return;
-            }
-            fwrite(response,sizeof(char),n,fp);
-            received+=n;
-            if(contentLength == received){
-                break;
-            }
-            //fwrite(response, n, 1, fp);
+        char buff[1024]="",*ptr=buff+4;
+    int bytes_received;
+    while(1){
+        bytes_received = net_recv(sockfd, ptr, 1, 0);
+        if(bytes_received==-1){
+            perror("Parse Header");
+            exit(1);
         }
 
-        printf("Done!");
+        if(
+            (ptr[-3]=='\r')  && (ptr[-2]=='\n' ) &&
+            (ptr[-1]=='\r')  && (*ptr=='\n' )
+        ){
+            break;
+        }
+        ptr++;
+    }
+
+    *ptr=0;
+    ptr=buff+4;
+    //printf("%s",ptr);
+
+    if(bytes_received){
+        ptr=strstr(ptr,"Content-Length: ");
+        ptr+=16;
+        if(ptr){
+            bytes_received = atoi(strtok(ptr, "\r\n"));
+
+        }else
+            bytes_received=-1; //unknown size
+    }
+
+        FILE* fp;
+        char fppath[20];
+        sprintf(fppath, "sd://reddit%d.jpg", index);
+        fp = fopen(fppath, "wb");
+
+        int receivd;
+        while(bytes_received > 0){
+            receivd = net_recv(sockfd, response, 1023,0);
+            response[receivd] = '\0';
+            if(receivd<1){
+                return;
+            }
+            bytes_received -= receivd;
+            printf("%d...", bytes_received);
+
+            fwrite(response, sizeof(char), receivd, fp);
+        }
 
         fclose(fp);
 
-        //textures[index] = //GRRLIB_LoadTexture((const u8*)THEIMG);
-        //downloadedTextures[index] = true;
+        printf("Done!");
+
+        textures[index] = GRRLIB_LoadTextureFromFile(fppath);
+        downloadedTextures[index] = true;
 
         net_close(sockfd);
-
-        /*
-        free(message);
-        free(host);
-        free(requestend);
-        free(url);
-        free(tempurl);
-        */
     }
-
-    /*free(url);
-    free(tempurl);
-    free(host);
-    free(requestend);*/
 }
 
 int ParseHeader(int sock){
