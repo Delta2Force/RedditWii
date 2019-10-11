@@ -11,3 +11,8 @@ Use the D-Pad to navigate in the front page, A to view a post. Once you have vie
 WARNING: After exiting from a post to the front page, attempting to view another post will crash your entire system.
 
 Pressing the Home Button will exit the app.
+
+## Building from Source
+First you need [devkitppc](https://devkitpro.org/wiki/Getting_Started). Then you need to install the GRRLIB API which you can get [here.](https://github.com/GRRLIB/GRRLIB)
+
+After installing this, just execute "make" in the root directory and a .elf and .dol file should be created!
