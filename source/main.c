@@ -32,11 +32,16 @@ struct post {
     int score;
 };
 
+struct rect{
+    float width;
+    float height;
+};
+
 float lerp(float a, float b, float t);
 void front_page(void);
 void downloadImage(int index);
 int EndsWith(const char *str, const char *suffix);
-enum state {LOADING_SCREEN, FRONT_PAGE};
+enum state {LOADING_SCREEN, FRONT_PAGE, VIEW_IMAGE};
 int ParseHeader(int sock);
 
 unsigned int evctr = 0;
@@ -51,9 +56,13 @@ enum state currentState = LOADING_SCREEN;
 unsigned int logoX = 79; unsigned int logoY = 165;
 float logoScale = 1;
 bool frontpageGotten=false; bool getFrontpage=false;
-struct post fp_data[25];
-GRRLIB_texImg* textures[10];
-bool downloadedTextures[10] = {0};
+struct post fp_data[10];
+GRRLIB_texImg* texture;
+bool textureLoaded;
+int selected = 0;
+float width;
+float height;
+char info[75];
 
 int main() {
     GRRLIB_Init();
@@ -78,6 +87,24 @@ int main() {
         u32 down = WPAD_ButtonsDown(WPAD_CHAN_0);
         if(down & WPAD_BUTTON_HOME) break;
 
+        if(currentState == FRONT_PAGE){
+            if(down & WPAD_BUTTON_DOWN) selected++;
+            if(down & WPAD_BUTTON_UP) selected--;
+            if(down & WPAD_BUTTON_A){
+                sprintf(info, "r/%s - u/%s", fp_data[selected].subreddit, fp_data[selected].author);
+                currentState = VIEW_IMAGE;
+            } 
+        }
+
+        if(currentState == VIEW_IMAGE){
+            if(down & WPAD_BUTTON_B){
+                currentState = FRONT_PAGE;
+                free(texture);
+                texture = NULL;
+                textureLoaded = false;
+            } 
+        }
+
         unsigned int endsUp = redditTextVis*0xFF;
         GRRLIB_DrawImg(0, 0, redditLogoText, 0, 1, 1, 0xFFFFFF00|endsUp);
 
@@ -95,25 +122,23 @@ int main() {
                 if(!getFrontpage){
                     getFrontpage = true;
                     front_page();
-                    for(int i = 0;i<3;i++){
-                        downloadImage(i);
-                    }
                 }
             }
 
             if(frontpageGotten && getFrontpage){
                 currentState = FRONT_PAGE;
             }
-        }else{
+        }else if(currentState == FRONT_PAGE){
             int yy = 70;
             for(int i = 0; i<10; i++){
-                GRRLIB_PrintfTTF(8, yy, tex_font, fp_data[i].title, 24, 0x00000000);
-                if(downloadedTextures[i] == true)){
-                    GRRLIB_DrawImg(8, yy+24, textures[i],0, 111/textures[i]->h, 111/textures[i]->h, 0xFFFFFFFF);
+                if(selected == i){
+                    char tt[300];
+                    sprintf(tt, "-> %s", fp_data[i].title);
+                    GRRLIB_PrintfTTF(8, yy, tex_font, tt, 24, 0x00000000);
+                }else{
+                    GRRLIB_PrintfTTF(8, yy, tex_font, fp_data[i].title, 24, 0x00000000); 
                 }
-                // 111/(resolution y) to calculate the scale
-                // also somehow download png
-                yy+=150;
+                yy+=24;
             }
 
             GRRLIB_DrawImg(logoX, logoY, redditLogo, 0, logoScale, logoScale, 0xFFFFFFFF);
@@ -121,6 +146,16 @@ int main() {
             logoX = lerp(logoX,4,0.1);
             logoY = lerp(logoY,4,0.1);
             logoScale = lerp(logoScale,0.4,0.1);
+        }else if(currentState == VIEW_IMAGE){
+            GRRLIB_FillScreen(0x696969FF);
+            if(!textureLoaded){
+                GRRLIB_PrintfTTF(48, 128, tex_font, "The image is being downloaded...", 24, 0xFFFFFFFF);
+                downloadImage(selected);
+            }else{
+                GRRLIB_DrawImg(640-(width*texture->w), 0,texture, 0, width, height, 0xFFFFFFFF);
+            }
+            GRRLIB_PrintfTTF(24, 24, tex_font, fp_data[selected].title, 24, 0x00000000);
+            GRRLIB_PrintfTTF(24, 48, tex_font, info, 16, 0x00000000);
         }
 
         GRRLIB_Render();
@@ -324,9 +359,13 @@ void downloadImage(int index){
             bytes_received=-1; //unknown size
     }
 
+    if(bytes_received > 100000){
+        return;
+    }
+
         FILE* fp;
         char fppath[20];
-        sprintf(fppath, "sd://reddit%d.jpg", index);
+        sprintf(fppath, "sd:/%s", requestend);
         fp = fopen(fppath, "wb");
 
         int receivd;
@@ -343,52 +382,19 @@ void downloadImage(int index){
         }
 
         fclose(fp);
+        net_close(sockfd);
 
         printf("Done!");
 
-        textures[index] = GRRLIB_LoadTextureFromFile(fppath);
-        downloadedTextures[index] = true;
+        texture = GRRLIB_LoadTextureFromFile(fppath);
+        textureLoaded = true;
+        
+        float ratio = (float)texture->w / (float)texture->h;
+        height = (float)500/(float)texture->h;
+        width = height * ratio;
 
-        net_close(sockfd);
+        /*float ratio = (float)textures[index]->w / (float)textures[index]->h;
+        height[index] = (float)161/(float)textures[index]->h; 
+        width[index] = height[index] * ratio;*/
     }
-}
-
-int ParseHeader(int sock){
-    char buff[1024]="",*ptr=buff+4;
-    int bytes_received;
-    printf("Begin HEADER ..\n");
-    while(1){
-        bytes_received = net_recv(sock, ptr, 1, 0);
-        if(bytes_received==-1){
-            perror("Parse Header");
-            exit(1);
-        }
-
-        if(
-            (ptr[-3]=='\r')  && (ptr[-2]=='\n' ) &&
-            (ptr[-1]=='\r')  && (*ptr=='\n' )
-        ){
-            break;
-        }
-        ptr++;
-    }
-
-    *ptr=0;
-    ptr=buff+4;
-    //printf("%s",ptr);
-
-    if(bytes_received){
-        ptr=strstr(ptr,"Content-Length:");
-        if(ptr){
-            sscanf(ptr,"%*s %d",&bytes_received);
-
-        }else
-            bytes_received=-1; //unknown size
-
-       printf("Content-Length: %d\n",bytes_received);
-    }
-
-    printf("End HEADER ..\n");
-    return  bytes_received ;
-
 }
