@@ -40,9 +40,7 @@ struct rect{
 float lerp(float a, float b, float t);
 void front_page(void);
 void downloadImage(int index);
-int EndsWith(const char *str, const char *suffix);
 enum state {LOADING_SCREEN, FRONT_PAGE, VIEW_IMAGE};
-int ParseHeader(int sock);
 
 unsigned int evctr = 0;
 
